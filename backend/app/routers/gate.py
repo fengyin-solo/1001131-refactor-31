@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.gate import GateService
+from app.services.gate_policy import MISSING_HINT, RELEASE_FIELDS
 
 router = APIRouter(prefix="/api/gate", tags=["闸口通行"])
 
@@ -44,6 +45,9 @@ def create_entry(payload: EntryPayload) -> ActionResult:
     """登记一条通行记录，缺字段时说明原因而不是静默丢弃。"""
     entry, missing = service.create_entry(payload.values)
     if missing:
+        # 车牌号码、关联箱号缺失时，登记入口与放行确认、复核共用同一段说明
+        if any(field in missing for field in RELEASE_FIELDS):
+            return ActionResult(ok=False, message=MISSING_HINT)
         return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
     return ActionResult(ok=True, message="通行记录已登记", entry=entry)
 

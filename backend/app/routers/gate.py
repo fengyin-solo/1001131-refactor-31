@@ -41,11 +41,14 @@ def get_entry(entry_id: int) -> dict:
 
 @router.post("", response_model=ActionResult)
 def create_entry(payload: EntryPayload) -> ActionResult:
-    """登记一条通行记录，缺字段时说明原因而不是静默丢弃。"""
+    """登记一条通行记录；车牌或箱号缺失时照常登记，但放行判据的结论与说明和放行确认、复核保持一致。"""
     entry, missing = service.create_entry(payload.values)
     if missing:
         return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
-    return ActionResult(ok=True, message="通行记录已登记", entry=entry)
+    message = "通行记录已登记"
+    if entry and entry.get("放行结论") == "暂不能放行":
+        message = f"{message}，{entry['放行说明']}"
+    return ActionResult(ok=True, message=message, entry=entry)
 
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)

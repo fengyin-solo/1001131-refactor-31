@@ -70,7 +70,7 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/gate'
-const columns = ["通行编号", "车牌号码", "关联箱号", "进出方向", "通行时间", "道口编号", "值守人员", "通行状态"]
+const columns = ["通行编号", "车牌号码", "关联箱号", "进出方向", "通行时间", "道口编号", "值守人员", "通行状态", "放行结论"]
 const actions = ["确认放行", "拦截车辆", "复核通行"]
 const statuses = ["待放行", "已放行", "已拦截", "已复核"]
 const stats = [{"label": "今日进闸车次", "value": 0}, {"label": "今日出闸车次", "value": 0}, {"label": "拦截车次", "value": 0}]
@@ -101,8 +101,9 @@ async function runAction(action: string, row: Row) {
       method: 'POST',
       body: JSON.stringify({ action }),
     })
-    if (!response.ok) {
-      throw new Error('闸口通行动作未生效，请稍后重试')
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.message ?? '闸口通行动作未生效，请稍后重试')
     }
     await reload()
   } catch (error) {
